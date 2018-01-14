@@ -16,6 +16,7 @@ public class UltrasonicDetectorController {
     private static final String ECHO = "GPIO1_IO10";
     private Gpio mTrigIO;
     private Gpio mEchoIO;
+    private boolean inited;
     private PeripheralManagerService mPeripheralManagerService = new PeripheralManagerService();
 
     private UltrasonicDetectorController(){}
@@ -33,15 +34,20 @@ public class UltrasonicDetectorController {
      * */
     public boolean initUltrasonic(){
         try {
+            if (isInited()){
+                return true;
+            }
             mTrigIO = mPeripheralManagerService.openGpio(TRIG);
             mTrigIO.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mTrigIO.setActiveType(Gpio.ACTIVE_HIGH);
 
             mEchoIO = mPeripheralManagerService.openGpio(ECHO);
             mEchoIO.setDirection(Gpio.DIRECTION_IN);
+            inited = true;
             Log.d(TAG, "Ultrasonic init success");
             return true;
         }catch ( Exception e){
+            inited = false;
             Log.e(TAG, "ultrasonic init failed",e);
             return false;
         }
@@ -80,6 +86,10 @@ public class UltrasonicDetectorController {
                 mTrigIO.close();
             }
         }catch (Exception e){}
+    }
+
+    public boolean isInited(){
+        return inited;
     }
 
     private GpioCallback mGpioCallBack = new GpioCallback() {

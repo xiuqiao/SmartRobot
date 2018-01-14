@@ -20,6 +20,7 @@ public class ServoMotorsController {
     private PeripheralManagerService mManagerService = new PeripheralManagerService();
     private final int PWM_HZ = 50;
     private final double BASE_DUTY = 2.5; // 舵机最小控制时间 0.5ms-2.5 -- -90 - 90  现在周期是 10 ms，因此一个单元的百分比是 5/100
+    private boolean inited;
 
     private static class ServoMotorsControllerInstance{
         private static ServoMotorsController mServoMotorsController = new ServoMotorsController();
@@ -31,11 +32,16 @@ public class ServoMotorsController {
 
     public boolean initServoMotor(){
         try {
+            if (isInited()){
+                return true;
+            }
             mPwm = mManagerService.openPwm(M_PWM);
             mPwm.setPwmFrequencyHz(PWM_HZ);
             Log.d(TAG, "servo init success");
+            inited = true;
             return true;
         }catch (Exception e){
+            inited = false;
             Log.e(TAG, "init servo error", e);
             return false;
         }
@@ -71,6 +77,10 @@ public class ServoMotorsController {
                 mPwm.close();
             }catch ( Exception e){}
         }
+    }
+
+    public boolean isInited(){
+        return inited;
     }
 
     private void setPwmDuty(double duty){

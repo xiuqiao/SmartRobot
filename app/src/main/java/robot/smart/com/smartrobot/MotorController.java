@@ -5,6 +5,8 @@ import android.util.Log;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
 
+import java.time.Year;
+
 /**
  * Created by Qiao on 2018/1/7.
  */
@@ -24,6 +26,8 @@ public class MotorController {
     //右电机
     private static final String IN3 = "GPIO2_IO02";
     private static final String IN4 = "GPIO2_IO01";
+
+    private boolean inited;
 
     //左电机使能IO
     private Gpio mEAIO;
@@ -55,6 +59,9 @@ public class MotorController {
      * */
     public boolean initMotor(){
         try {
+            if (isInited()){
+                return true;
+            }
             mEAIO = mPeripheralManagerService.openGpio(ENABLE_A);
             mEAIO.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mEAIO.setActiveType(Gpio.ACTIVE_HIGH);
@@ -78,10 +85,11 @@ public class MotorController {
             mIN4IO = mPeripheralManagerService.openGpio(IN4);
             mIN4IO.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mIN4IO.setActiveType(Gpio.ACTIVE_HIGH);
-
+            inited = true;
             Log.d(TAG, "init IO success");
             return true;
         }catch (Exception e){
+            inited = false;
             Log.e(TAG, "init motor gpio error", e);
             return false;
         }
@@ -131,6 +139,10 @@ public class MotorController {
 
     }
 
+    public boolean isInited(){
+        return inited;
+    }
+
     private void runBack(){
         leftMotorReversalRotating();
         rightMotorReversalRotating();
@@ -168,7 +180,7 @@ public class MotorController {
             mEAIO.setValue(true);
             mIN1IO.setValue(false);
             mIN2IO.setValue(true);
-            Log.d(TAG, "left forward success");
+//            Log.d(TAG, "left forward success");
         }catch ( Exception e){
             Log.e(TAG, "left forward error", e);
         }
@@ -179,7 +191,7 @@ public class MotorController {
             mEAIO.setValue(true);
             mIN1IO.setValue(true);
             mIN2IO.setValue(false);
-            Log.d(TAG, "left reversal success");
+//            Log.d(TAG, "left reversal success");
         }catch ( Exception e){
             Log.e(TAG, "left back error",e);
         }
@@ -193,7 +205,7 @@ public class MotorController {
             mEBIO.setValue(true);
             mIN3IO.setValue(false);
             mIN4IO.setValue(true);
-            Log.d(TAG, "right forward success");
+//            Log.d(TAG, "right forward success");
         }catch (Exception e){
             Log.e(TAG, "right forward error", e);
         }
@@ -204,7 +216,7 @@ public class MotorController {
             mEBIO.setValue(true);
             mIN3IO.setValue(true);
             mIN4IO.setValue(false);
-            Log.d(TAG, "right reversal success");
+//            Log.d(TAG, "right reversal success");
         }catch (Exception e){
             Log.e(TAG, "right back error",e);
         }

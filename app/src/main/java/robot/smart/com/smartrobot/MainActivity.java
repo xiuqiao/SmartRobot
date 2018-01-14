@@ -41,10 +41,14 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initBackThread();
-//        initMotor();
-//        initUltrasonic();
-        initServoMotorController();
+        initPeriphera();
+        startWalk();
+    }
 
+    private void initPeriphera(){
+        mMotorController.initMotor();
+        mUltrasonicController.initUltrasonic();
+        mServoCotroller.initServoMotor();
     }
 
     private void initBackThread(){
@@ -70,7 +74,7 @@ public class MainActivity extends Activity {
                         float distance = mUltrasonicController.measureDistance();
                         Log.d("distance",  distance + "cm");
                         try {
-                            Thread.sleep(4000);
+                            Thread.sleep(2000);
                         }catch (Exception e){}
                     }
                 }
@@ -105,6 +109,109 @@ public class MainActivity extends Activity {
             });
         }
     }
+
+    private void startUltrasonictScan(){
+        if (mServoCotroller.initServoMotor() && mUltrasonicController.initUltrasonic()){
+            mBackHander.post(new Runnable() {
+                @Override
+                public void run() {
+                    while (true){
+                        for (ServoMotorsController.RotateAngle angle : ServoMotorsController.RotateAngle.values()){
+                            mServoCotroller.setAngle(angle);
+                            float distance = mUltrasonicController.measureDistance();
+                            Log.d("distance",  distance + "cm");
+                            try {
+                                Thread.sleep(5000);
+                            }catch (Exception e){}
+                        }
+
+                        for (int i = ServoMotorsController.RotateAngle.values().length - 1; i >= 0; i--) {
+                            mServoCotroller.setAngle(ServoMotorsController.RotateAngle.values()[i]);
+                            float distance = mUltrasonicController.measureDistance();
+                            Log.d("distance",  distance + "cm");
+                            try {
+                                Thread.sleep(5000);
+                            } catch (Exception e) {
+                            }
+
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private void startWalk(){
+        if (mServoCotroller.isInited() && mUltrasonicController.isInited() && mMotorController.isInited()){
+            mBackHander.post(mWalkRunable);
+        }
+    }
+
+    private void threadSleep(long mSec){
+        try {
+            Thread.sleep(mSec);
+        }catch ( Exception e){}
+    }
+
+    private void carAction(ServoMotorsController.RotateAngle angle, float distance){
+        if (distance < 20){//最远的小于20 退一下
+            mMotorController.run(MotorController.Direction.BACK);
+            threadSleep(1500);
+            mMotorController.run(MotorController.Direction.STOP);
+        }
+        if (angle == ServoMotorsController.RotateAngle.ANGLE_F90){
+            mMotorController.run(MotorController.Direction.LEFT);
+            threadSleep(600);
+            mMotorController.run(MotorController.Direction.FORWARD);
+        } else if (angle == ServoMotorsController.RotateAngle.ANGLE_F45){
+            mMotorController.run(MotorController.Direction.LEFT);
+            threadSleep(350);
+            mMotorController.run(MotorController.Direction.FORWARD);
+        } else if (angle == ServoMotorsController.RotateAngle.ANGLE_90){
+            mMotorController.run(MotorController.Direction.RIGHT);
+            threadSleep(600);
+            mMotorController.run(MotorController.Direction.FORWARD);
+        } else if (angle == ServoMotorsController.RotateAngle.ANGLE_45){
+            mMotorController.run(MotorController.Direction.RIGHT);
+            threadSleep(350);
+            mMotorController.run(MotorController.Direction.FORWARD);
+        } else {
+            mMotorController.run(MotorController.Direction.FORWARD);
+        }
+    }
+
+    private void keepAwayAction(){
+        ServoMotorsController.RotateAngle farAngle = ServoMotorsController.RotateAngle.ANGLE_0;
+        float farDistance = 0;
+        for (ServoMotorsController.RotateAngle angle : ServoMotorsController.RotateAngle.values()){
+            mServoCotroller.setAngle(angle);
+            threadSleep(2000);
+            float distance = mUltrasonicController.measureDistance();
+            Log.d("distance",  distance + "cm");
+            if (distance > farDistance){// 获取最远的方向和角度
+                farDistance = distance;
+                farAngle = angle;
+            }
+        }
+        Log.d("most far distance","ddd" + farDistance);
+        carAction(farAngle, farDistance);
+    }
+
+    private Runnable mWalkRunable = new Runnable() {
+        @Override
+        public void run() {
+            while (true){
+                mServoCotroller.setAngle(ServoMotorsController.RotateAngle.ANGLE_0);
+                float distance = mUltrasonicController.measureDistance();
+                if (distance < 30){
+                    mMotorController.run(MotorController.Direction.STOP);
+                    keepAwayAction();
+                } else {
+                    mMotorController.run(MotorController.Direction.FORWARD);
+                }
+            }
+        }
+    };
 
     @Override
     protected void onDestroy() {
